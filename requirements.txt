@@ -4,5 +4,4 @@ seaborn
 matplotlib
 streamlit
 openai
-langchain
-dotenv
+python-dotenv
