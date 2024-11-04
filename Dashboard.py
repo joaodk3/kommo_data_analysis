@@ -34,12 +34,11 @@ def main():
         with st.sidebar:
             
             # Dated Metrics
-            
-            min_data_spam = data["Data Criada"].min()
-            max_data_spam = data["Data Criada"].max()
+            min_data_spam = data["Criado em"].min()
+            max_data_spam = data["Criado em"].max()
 
-            data["Data Criada"] = pd.to_datetime(data["Data Criada"], format="%d.%m.%Y %H:%M:%S")
-            data["Month-Year"] = data["Data Criada"].dt.strftime("%B-%Y")
+            data["Criado em"] = pd.to_datetime(data["Criado em"], format="%d.%m.%Y %H:%M:%S")
+            data["Month-Year"] = data["Criado em"].dt.strftime("%B-%Y")
             unique_dates = data["Month-Year"].unique()
             
             data_selection = st.selectbox(
@@ -51,8 +50,9 @@ def main():
             st.subheader("Date Spam for Total Data", divider="grey")
             st.info("Start Date: {}".format(min_data_spam))
             st.info("End Date: {}".format(max_data_spam))
-            
-        
+    
+        data.rename(columns={"Lead venda R$": "Venda"}, inplace=True)
+
         #Total Metrics 
         total_leads = data.ID.count()
         gain_leads = data.Venda[data.Venda != 0].count()
@@ -68,11 +68,16 @@ def main():
         col4.metric("Conversion Rate", value=formatted_conversion_rate)
 
         #Closing Dates Analysis
+        gains_df = data[(data['Venda'] != 0) & (data['Fechado às'] != "não fechado") & (data['Origem'] != 'LTV')]
+        gains_df['Fechado às'] = pd.to_datetime(gains_df['Fechado às'], format='mixed', dayfirst=True)
+        gains_df['Criado em'] = pd.to_datetime(gains_df['Criado em'], format='mixed', dayfirst=True)
+
+        # Calculate 'Spam CLosing'
+        gains_df['Spam CLosing'] = gains_df['Fechado às'] - gains_df['Criado em']
+
+        # Display the DataFrame
         st.write("DataFrame de Clientes que fecharam")
-        gains_df = data[(data['Venda'] != 0) & (data['Data final'].notna() & (data['Origem'] != 'LTV'))]
-        gains_df['Data final'] = pd.to_datetime(gains_df['Data final'])
-        gains_df['Data Criada'] = pd.to_datetime(gains_df['Data Criada'])
-        gains_df['Spam CLosing'] = gains_df["Data final"] - gains_df["Data Criada"]
+        st.dataframe(gains_df)
 
         gains_df['Spam Closing Days'] = gains_df['Spam CLosing'].dt.days
         min_close_spam = gains_df['Spam Closing Days'].min()
@@ -85,16 +90,16 @@ def main():
         col6.metric("Maximum Spam Closing", value=max_close_spam)
         col7.metric("Average Spam Closing", value=avg_close_spam)
 
-
         st.subheader("Leads Status", divider="red")
 
         status_count = data.groupby(['Status Atual']).ID.count()
         st.dataframe(status_count, width=700)
 
         st.subheader("Leads Origin", divider="red")
-        
+            
         origin_count = data.groupby(['Origem']).ID.count()
         st.dataframe(origin_count, width=700)
+        
     else:
         st.warning("Upload a file first")
         with st.sidebar:
